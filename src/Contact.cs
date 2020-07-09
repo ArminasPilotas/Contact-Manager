@@ -1,36 +1,20 @@
 using System;
-class Contact
+public class Contact
 {
-    private string firstName;
-    private string lastName;
-    private string phoneNumber;
-    private string address;
+    public string FirstName {get;}
+    public string LastName {get;}
+    public string PhoneNumber {get;}
+    public string Address {get;}
 
-    public Contact(string firstName, string lastName, string phoneNumber, string address)
+    public Contact(string firstName, string lastName, string phoneNumber, string address="")
     {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.phoneNumber = phoneNumber;
-        this.address = address;
+        FirstName=firstName;
+        LastName=lastName;
+        PhoneNumber=phoneNumber;
+        Address=address;
     }
-    public Contact(string firstName, string lastName, string phoneNumber) : this(firstName, lastName, phoneNumber, String.Empty)
-    {
-    }
-    public string getFirstName()
-    {
-        return this.firstName;
-    }
-    public string getLastName()
-    {
-        return this.lastName;
-    }
-    public string getPhoneNumber()
-    {
-        return this.phoneNumber;
-    }
-    public string getAddress()
-    {
-        return this.address;
+    public override string ToString() {
+        return $"{FirstName} {LastName} {PhoneNumber} {Address}";
     }
 
 }

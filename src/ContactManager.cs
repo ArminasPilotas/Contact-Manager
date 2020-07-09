@@ -1,239 +1,137 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 public class ContactManager
 {
-    private List<Contact> contacts = new List<Contact>();
-    public void showWelcomeWindow()
+    private List<Contact> contacts;
+    private Display display;
+    private Database database;
+
+    public ContactManager(){
+        display=new Display();
+        database = new Database("/outputs/contacts.csv");
+        contacts= database.Read();
+    }
+    public void Run()
     {
-        Console.WriteLine("Contact Manager Program");
-        Console.WriteLine("1. Add Contact");
-        Console.WriteLine("2. Update Contact Information");
-        Console.WriteLine("3. Delete Contact");
-        Console.WriteLine("4. View All Contacts");
-        Console.Write("Enter a choice: ");
-        String input = Console.ReadLine();
-        int choice;
-        if (int.TryParse(input, out choice))
-        { //checks if user enters a integer number
-            choice = Convert.ToInt32(input);
-            validateChoice(choice);
-        }
-        else
+        while(true)
         {
-            showErrorMessage();
+            display.MenuChoices();
+            var(success,choice)= UserInput.Number();
+            if(success)
+            {
+               MenuOptions(choice);
+            }
+            else
+            {
+                display.InvalidChoice();
+            }
         }
     }
-    private void showErrorMessage()
-    { //if user enters wrong number or not a number use this method
-        Console.Clear();
-        Console.WriteLine("Not a valid choice try again");
-        showWelcomeWindow();
-    }
-    private void validateChoice(int number)
+    private bool MenuOptions (int number)
     {
         switch (number)
         {
             case 1:
-                addContact();
-                break;
+                AddContact();
+                return false;
 
             case 2:
-                updateContact();
-                break;
+                UpdateContact();
+                return false;
 
             case 3:
-                deleteContact();
-                break;
-
+                DeleteContact();
+                return false;
             case 4:
-                showContacts();
-                break;
+
+                display.Contacts(contacts);
+                display.WaitForKey();
+                return false;
+
+            case 5:
+            database.Write(contacts);
+            return true;
 
             default:
-                showErrorMessage();
+                display.InvalidChoice();
+                display.WaitForKey();
+                return false;
+        }
+    }
+    private readonly string EnterContactMessage= "Enter a Name, Last Name, Phone Number, Address(Optional)\n" +
+                                                  "Please separate values by comma:";
+    private void AddContact()
+    {
+            while(true)
+            {
+            var (success,contact) = UserInput.Contact(EnterContactMessage,true);
+            if (success && ValidPhoneNumber(contact.PhoneNumber))
+            {
+                contacts.Add(contact);
                 break;
-        }
-    }
-    private void addContact()
-    {
-        readFile();
-        Console.Clear();
-        Console.WriteLine("Enter a Name, Last Name, Phone Number, Address(Optional)");
-        Console.WriteLine("Please separate values by comma:");
-        String input = Console.ReadLine();
-        var values = input.Split(',');
-        string firstName = values[0];
-        string lastName = values[1];
-        string phoneNumber = values[2];
-        if (isPhoneNumberExits(phoneNumber) == true)
-        { //number exists can't create a contact
-            addContact(); //return to add contact
-        }
-        else
-        { //number don't exits
-            if (values.Length == 3)
-            { //adress is not entered
-                contacts.Add(new Contact(firstName, lastName, phoneNumber));
-            }
-
-            else if (values.Length == 4)
-            { //address is entered
-                string address = values[3];
-                contacts.Add(new Contact(firstName, lastName, phoneNumber, address));
-            }
-
-            else
-            { //not valid input
-                addContact();
             }
         }
-        showSuccessfulMessage();
+        database.Write(contacts);
+        display.OperationSuccessful();
 
     }
-    private void updateContact()
-    {
-        Console.Clear();
-        printContacts();
-        Console.Write("Enter a number which contact to update: ");
-        String input = Console.ReadLine();
-        int choice;
-        if (int.TryParse(input, out choice) && Convert.ToInt32(input) > 0 && Convert.ToInt32(input) <= contacts.Count)
-        { //checks if user enters a integer number
-            choice = Convert.ToInt32(input) - 1;
-            Console.Clear();
-            Contact contact = contacts[choice]; //take the contact object which is choosen
-            Console.WriteLine("{0} {1} {2} {3}", contact.getFirstName(), contact.getLastName(), contact.getPhoneNumber(), contact.getAddress());
-            Console.WriteLine("Enter a Name, Last Name, Phone Number, Address(Optional)");
-            Console.WriteLine("Please separate values by comma:");
-            String temporary = Console.ReadLine();
-            var values = temporary.Split(',');
-            string firstName = values[0];
-            string lastName = values[1];
-            string phoneNumber = values[2];
-            if (isPhoneNumberExits(phoneNumber) == true)
-            { //number exists can't create a contact
-                updateContact(); //returning to updateContact
-            }
-            else
+
+    private void UpdateContact(){
+        while(true){
+            display.Contacts(contacts);
+            var (choiceSuccess, choice) = UserInput.Number("Enter a number which contact to update: ");
+
+            if (choiceSuccess && choice > 0 && choice <= contacts.Count)
             {
-                if (values.Length == 3)
-                { //adress is not entered
-                    Contact contact1 = new Contact(firstName, lastName, phoneNumber);
-                    contacts[choice] = contact1;
-                }
+                var (contactSuccess, contact) = UserInput.Contact(EnterContactMessage, true);
 
-                else if (values.Length == 4)
-                { //address is entered
-                    string address = values[3];
-                    Contact contact1 = new Contact(firstName, lastName, phoneNumber, address);
-                    contacts[choice] = contact1;
-                }
-
-                else
-                { //not valid input
-                    updateContact();
+                if (contactSuccess && ValidPhoneNumber(contact.PhoneNumber))
+                {
+                   contacts[choice-1]= contact;
+                   break;
                 }
             }
         }
-        else
-        {
-            updateContact();
-        }
-        showSuccessfulMessage();
+        database.Write(contacts);
+        display.OperationSuccessful();
 
+        
     }
-    private void deleteContact()
+    private void DeleteContact()
     {
-        Console.Clear();
-        printContacts();
-        Console.Write("Enter a number which contact to delete: ");
-        String input = Console.ReadLine();
-        int choice;
-        if (int.TryParse(input, out choice) && Convert.ToInt32(input) > 0 && Convert.ToInt32(input) <= contacts.Count)
-        { //checks if user enters a integer number
-            choice = Convert.ToInt32(input) - 1;
-            contacts.RemoveAt(choice);
-        }
-        else
+        while(true)
         {
-            deleteContact();
-        }
-        showSuccessfulMessage();
-
-    }
-    private void showContacts()
-    {
-        printContacts();
-        Console.WriteLine("Press any button to continue");
-        Console.ReadKey();
-        showWelcomeWindow();
-
-    }
-    private void printContacts()
-    {
-        Console.Clear();
-        readFile();
-        int contactNumber = 1;
-        Console.WriteLine("Name, Last Name, Phone Number, Address");
-        foreach (Contact contact in contacts)
-        {
-            Console.WriteLine("{0}) {1} {2} {3} {4}", contactNumber, contact.getFirstName(), contact.getLastName(), contact.getPhoneNumber(), contact.getAddress());
-            contactNumber++;
-        }
-    }
-    private void readFile()
-    {
-        contacts.Clear();
-        string path = Directory.GetCurrentDirectory() + "/outputs/contacts.csv";
-        using (var reader = new StreamReader(path))
-        {
-            while (!reader.EndOfStream)
+            display.Contacts(contacts);
+            var (success, choice) = UserInput.Number("Enter a number which contact to delete: ");
+            if (success && choice > 0 && choice <= contacts.Count)
             {
-                var line = reader.ReadLine();
-                var values = line.Split(',');
-                string firstName = values[0];
-                string lastName = values[1];
-                string phoneNumber = values[2];
-                string address = values[3];
-                contacts.Add(new Contact(firstName, lastName, phoneNumber, address));
+                //checks if user enters a integer number
+                contacts.RemoveAt(choice-1);
+                break;
             }
         }
+        database.Write(contacts);
+        display.OperationSuccessful();
+
     }
-    private void writeToFile()
+
+   private bool ValidPhoneNumber(String phoneNumber)
     {
-        string path = Directory.GetCurrentDirectory() + "/outputs/contacts.csv";
-        using (var writter = new StreamWriter(path))
-        {
-            foreach (Contact contact in contacts)
+          if (new Regex(@"^\d{1,}$").Match(phoneNumber).Length == 0)
             {
-                var line = string.Format("{0},{1},{2},{3}", contact.getFirstName(), contact.getLastName(), contact.getPhoneNumber(), contact.getAddress());
-                writter.WriteLine(line);
-                writter.Flush();
-            }
-        }
-    }
-    private bool isPhoneNumberExits(String phoneNumber)
-    { //checks if number is not exist in other contacts
-        foreach (char c in phoneNumber)
-        {
-            if (c < '0' || c > '9')
-                return true;
-        }
-        foreach (Contact contact in contacts)
-        {
-            if (contact.getPhoneNumber().Equals(phoneNumber))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-    private void showSuccessfulMessage()
-    { //use this method if contact is added, updated or deleted
-        writeToFile();
-        Console.WriteLine("Operation successful press any button to continue");
-        Console.ReadKey();
-        showWelcomeWindow();
+            return false;
+         }  
+         foreach (var contact in contacts){
+             if (contact.PhoneNumber.Equals(phoneNumber)){
+                 return false;
+             }
+         }
+         return true;
     }
 }
+// Testing notes
+// if file is empty and you want to update or delete contact program runs to infinitive loop
+// Program craches if needed file and folder not found
+// if input is incorrect program craches

@@ -7,7 +7,7 @@ namespace src
         static void Main(string[] args)
         {
             ContactManager contactManager=new ContactManager();
-            contactManager.showWelcomeWindow();
+            contactManager.Run();
         }
     }
 }
