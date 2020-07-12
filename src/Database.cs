@@ -14,8 +14,6 @@ public class Database
         {
             while (!reader.EndOfStream)
             {
-                // Techniškai reikėtų daryti try/catch, nes galimai duomenys
-                // bus neteisingo formato, tačiau kadangi tu pats šiuos duomenis išrašai, tai all is fine.
                 var line = reader.ReadLine();
                 var values = line.Split(',');
                 var firstName = values[0];
